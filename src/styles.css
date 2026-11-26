@@ -9,7 +9,9 @@ label.check { display: flex; }
 input:not([type="checkbox"]), select { font: inherit; padding: 3px 6px; min-width: 0; }
 button { font: inherit; padding: 4px 12px; }
 .botons { display: flex; gap: 8px; }
-#clau { margin-top: 10px; }
+#clau, #model { margin-top: 10px; }
+#model-estat { margin: 0; }
+progress { width: 100%; }
 #clau-estat { margin: 0; }
 small { opacity: 0.7; }
 #missatge { min-height: 1.2em; margin: 8px 0 0; }

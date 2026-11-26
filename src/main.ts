@@ -1,5 +1,6 @@
 // Finestra de configuració. Contracte amb Rust a PLA.md.
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 type Config = {
   drecera: string;
@@ -83,6 +84,46 @@ formClau.addEventListener("submit", (e) => {
 
 document.querySelector("#esborra-clau")!.addEventListener("click", () => desaClau("", "Clau esborrada."));
 
+// --- Model de veu ---
+const modelEstat = document.querySelector<HTMLParagraphElement>("#model-estat")!;
+const modelProgres = document.querySelector<HTMLProgressElement>("#model-progres")!;
+const baixaModel = document.querySelector<HTMLButtonElement>("#baixa-model")!;
+const MB = (bytes: number) => Math.round(bytes / 1e6);
+
+async function refrescaModel() {
+  const hi_es = await invoke<boolean>("model_present");
+  modelEstat.textContent = hi_es ? "El model ja està baixat." : "Falta el model: sense ell Diga no pot transcriure.";
+  baixaModel.hidden = hi_es;
+}
+
+listen<{ baixat: number; total: number }>("diga://progres-model", ({ payload: { baixat, total } }) => {
+  modelProgres.hidden = false;
+  if (total > 0) {
+    modelProgres.max = total;
+    modelProgres.value = baixat;
+    modelEstat.textContent = `Baixant… ${MB(baixat)} de ${MB(total)} MB`;
+  } else {
+    modelProgres.removeAttribute("value"); // mida desconeguda: barra indeterminada
+    modelEstat.textContent = `Baixant… ${MB(baixat)} MB`;
+  }
+});
+
+baixaModel.addEventListener("click", async () => {
+  baixaModel.disabled = true;
+  modelEstat.textContent = "Connectant…";
+  try {
+    await invoke("descarregar_model");
+    avisa("Model baixat.");
+  } catch (e) {
+    avisa(String(e), true);
+  } finally {
+    baixaModel.disabled = false;
+    modelProgres.hidden = true;
+    await refrescaModel();
+  }
+});
+
 actual = await invoke<Config>("get_config");
 omple(actual);
 await refrescaClau();
+await refrescaModel();

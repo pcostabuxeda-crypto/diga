@@ -7,6 +7,8 @@ const FITXER: &str = "config.json";
 const CLAU_STORE: &str = "config";
 const SERVEI_CREDENCIAL: &str = "cat.diga.app";
 const USUARI_CREDENCIAL: &str = "anthropic-api";
+/// Mode codi aparcat per l'usuari: no es registra `drecera_codi`. Per reactivar-lo, posa-ho a `true` i treu el `hidden` de la UI.
+const MODE_CODI: bool = false;
 
 /// Es desa a `app_data_dir/config.json`. La clau d'API NO hi va: és al Gestor de credencials.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -53,18 +55,25 @@ pub fn get_config(app: AppHandle) -> Config {
 /// Si una drecera no es pot registrar, no es desa res i les velles continuen actives.
 #[tauri::command]
 pub fn set_config(app: AppHandle, config: Config) -> Result<(), String> {
-    if config.drecera.trim().is_empty() || config.drecera_codi.trim().is_empty() {
-        return Err("Les dreceres no poden quedar buides.".into());
+    if config.drecera.trim().is_empty() {
+        return Err("La drecera no pot quedar buida.".into());
     }
-    if config.drecera.eq_ignore_ascii_case(&config.drecera_codi) {
-        return Err("La drecera de dictat i la del mode codi han de ser diferents.".into());
+    if MODE_CODI {
+        if config.drecera_codi.trim().is_empty() {
+            return Err("La drecera del mode codi no pot quedar buida.".into());
+        }
+        if config.drecera.eq_ignore_ascii_case(&config.drecera_codi) {
+            return Err("La drecera de dictat i la del mode codi han de ser diferents.".into());
+        }
     }
 
     let vella = carregar(&app);
     canviar_drecera(&app, &vella.drecera, &config.drecera)?;
-    if let Err(e) = canviar_drecera(&app, &vella.drecera_codi, &config.drecera_codi) {
-        let _ = canviar_drecera(&app, &config.drecera, &vella.drecera);
-        return Err(e);
+    if MODE_CODI {
+        if let Err(e) = canviar_drecera(&app, &vella.drecera_codi, &config.drecera_codi) {
+            let _ = canviar_drecera(&app, &config.drecera, &vella.drecera);
+            return Err(e);
+        }
     }
 
     let store = app.store(FITXER).map_err(|e| e.to_string())?;
