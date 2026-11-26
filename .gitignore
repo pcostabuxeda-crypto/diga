@@ -1,0 +1,17 @@
+# Tauler viu entre A i B (fora de git)
+connexio.md
+
+# Node / Vite
+node_modules/
+dist/
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Models Whisper (es baixen en executar)
+*.bin
+
+.env
+.env.*
+!.env.example
