@@ -1,6 +1,7 @@
 mod audio;
 mod config;
 mod models;
+mod net;
 mod safata;
 mod sortida;
 mod transcriure;
@@ -75,16 +76,27 @@ fn deixada(app: &AppHandle) {
         return;
     };
     sortida::estat(app, "transcrivint");
-    let idioma = config::carregar(app).idioma;
+    let config::Config { idioma, vocabulari, mode_net, .. } = config::carregar(app);
     let app = app.clone();
     // Fora del fil de la drecera: Whisper triga uns segons.
     std::thread::spawn(move || {
         let res = gravacio.aturar().and_then(|audio| {
-            let text = transcriure::transcriure(&transcriure::cami_model(&app)?, &audio, &idioma)?;
+            let text = transcriure::transcriure(&transcriure::cami_model(&app)?, &audio, &idioma, &vocabulari)?;
             if text.is_empty() {
                 return Err("No s'ha entès res".into());
             }
-            sortida::copiar(&app, &text)
+            if !mode_net {
+                return sortida::copiar(&app, &text, None);
+            }
+            // Mode net: si Claude falla, es copia igualment el text del Whisper i s'avisa.
+            sortida::estat(&app, "endreçant");
+            match config::clau_api() {
+                None => sortida::copiar(&app, &text, Some("Mode net sense clau d'API: copiat tal qual")),
+                Some(clau) => match net::endrecar(&clau, &text, &vocabulari) {
+                    Ok(net) => sortida::copiar(&app, &net, None),
+                    Err(e) => sortida::copiar(&app, &text, Some(&format!("{e}: copiat tal qual"))),
+                },
+            }
         });
         if let Err(e) = res {
             sortida::error(&app, &e);

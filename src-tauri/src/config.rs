@@ -23,6 +23,10 @@ pub struct Config {
     pub llenguatge_codi: String,
     /// Nom del micro (com el dona `llista_micros`). Buit = el per defecte de Windows.
     pub micro: String,
+    /// Paraules pròpies (noms, termes tècnics) separades per comes, perquè Whisper les encerti.
+    pub vocabulari: String,
+    /// Claude endreça el text i entén ordres dictades. Envia el text a Anthropic.
+    pub mode_net: bool,
 }
 
 impl Default for Config {
@@ -36,6 +40,8 @@ impl Default for Config {
             drecera_codi: "Ctrl+Alt+C".into(),
             llenguatge_codi: "JavaScript".into(),
             micro: String::new(),
+            vocabulari: String::new(),
+            mode_net: false,
         }
     }
 }
