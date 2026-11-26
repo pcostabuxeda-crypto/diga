@@ -16,6 +16,22 @@
         "title": "Diga",
         "width": 420,
         "height": 360
+      },
+      {
+        "label": "retol",
+        "url": "retol.html",
+        "title": "Diga",
+        "width": 260,
+        "height": 48,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "focus": false,
+        "focusable": false
       }
     ],
     "security": {
