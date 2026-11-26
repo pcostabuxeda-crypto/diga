@@ -1,4 +1,5 @@
 mod audio;
+mod safata;
 mod sortida;
 mod transcriure;
 
@@ -30,6 +31,7 @@ pub fn run() {
         )
         .manage(Gravant::default())
         .setup(|app| {
+            safata::crear(app)?;
             // Si una altra app ja té la drecera, Diga segueix viva perquè es pugui canviar.
             if let Err(e) = app.global_shortcut().register(DRECERA) {
                 eprintln!("diga: no es pot registrar {DRECERA}: {e}");
