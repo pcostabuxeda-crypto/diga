@@ -10,8 +10,11 @@ Prems una drecera, parles, i el text queda copiat (i, si vols, enganxat on tens 
 | App | **Tauri 2 + Rust** | Exe petit, safata, drecera global i instal·lador NSIS fets. Mateix stack que Ona i Trainer Lab |
 | UI | HTML + TypeScript amb Vite (plantilla `vanilla-ts`) | Només hi ha config i un rètol «escoltant»: no cal framework |
 | Transcripció | **Whisper local** (`whisper-rs`, whisper.cpp) | Gratis, privat, sense internet, bon català |
-| Model | `ggml-large-v3-turbo-q5_0.bin` (~550 MB) | Millor relació qualitat/velocitat. Es baixa el primer cop a `%APPDATA%\diga\models` |
-| GPU | CPU a la Fase 1, CUDA (RTX 5070) a la Fase 2 | Al PC no hi ha CUDA Toolkit (`nvcc`); el necessitem per compilar amb GPU |
+| Màquina objectiu | **Portàtil i5 10a gen, 16 GB, sense GPU**, amb Claude i Docker oberts | Si va bé aquí, va bé a qualsevol PC de client |
+| Model | `ggml-small-q5_1.bin` (~190 MB) a la CPU, com a molt 4 fils | Mesurat: 0,8–1 s per frase i ~315 MB de RAM al PC de proves. Es baixa a `%APPDATA%\cat.diga.app\models` |
+| Repòs | El model es descarrega de memòria després de 5 min sense dictar | No ha de molestar jocs ni altres apps |
+| GPU | No, de moment | CUDA només va amb NVIDIA. Si mai cal, Vulkan (qualsevol GPU) |
+| Mode codi | **Claude Haiku 5.5** per API d'Anthropic (HTTP directe) | El portàtil no gasta RAM ni CPU i el cost per dictat és ínfim. Cada usuari hi posa la seva clau |
 | Git | GitHub Flow: branques `feature/`, PR, squash | [METODOLOGIA.md](../METODOLOGIA.md) |
 
 ## Com funciona
@@ -23,7 +26,7 @@ drecera deixada ──► whisper (idioma: ca, o auto) ──► porta-retalls
 ```
 
 - Mode: **mantenir** la drecera mentre parles. (Prémer per començar i per acabar: Fase 3.)
-- Drecera per defecte: `Ctrl+Alt+Espai` (configurable). `Win+H` és el dictat de Windows: no el trepitgem.
+- Drecera per defecte: `Ctrl+Alt+D` (configurable). `Ctrl+Alt+Espai` ja la fa servir una altra app en aquest PC. `Win+H` és el dictat de Windows: no el trepitgem.
 - Viu a la safata del sistema. Mostra un rètol petit: escoltant → transcrivint → copiat.
 
 ## Estructura
@@ -58,13 +61,18 @@ Així A i B poden treballar alhora sense esperar-se.
 
 **Ordres** (UI → Rust)
 - `get_config() -> Config`
-- `set_config(config: Config)` — torna a registrar la drecera si ha canviat
+- `set_config(config: Config)` — torna a registrar les dreceres que hagin canviat; si una falla, no desa res
+- `te_clau_api() -> bool` — la clau mai viatja cap a la UI
+- `set_clau_api(clau: string)` — la desa al Gestor de credencials de Windows (`cat.diga.app` / `anthropic-api`); buida = esborrar-la
 - `descarregar_model() -> ()` — envia `diga://progres-model`
 - `model_present() -> bool`
 
-**Config** (`%APPDATA%\diga\config.json`, amb `tauri-plugin-store`)
+**Des de Rust**: `config::carregar(app) -> Config` i `config::clau_api() -> Option<String>` (per a `codi.rs`).
+
+**Config** (`%APPDATA%\cat.diga.app\config.json`, amb `tauri-plugin-store`, clau `"config"`)
 ```json
-{ "drecera": "Ctrl+Alt+Space", "mode": "mantenir", "idioma": "ca", "enganxar": false, "inici_amb_windows": false }
+{ "drecera": "Ctrl+Alt+D", "mode": "mantenir", "idioma": "ca", "enganxar": false, "inici_amb_windows": false,
+  "drecera_codi": "Ctrl+Alt+C", "llenguatge_codi": "JavaScript" }
 ```
 
 ## Fases
@@ -77,8 +85,11 @@ Així A i B poden treballar alhora sense esperar-se.
 - A: drecera mantinguda → grava → whisper CPU → porta-retalls. Prova: dir una frase i enganxar-la al Bloc de notes.
 - B: safata (Configuració / Sortir), rètol d'estat, finestra de config, descàrrega del model.
 
+**Fase 1b — mode codi**
+- A: `codi.rs`: text + llenguatge → Claude Haiku 5.5 → codi al porta-retalls (segona drecera).
+- B: a la config, llenguatge, segona drecera i clau d'API (Gestor de credencials de Windows).
+
 **Fase 2 — fer-la de veritat**
-- GPU: instal·lar CUDA Toolkit 12.8+ (Blackwell), feature `cuda` a `whisper-rs`, empaquetar les DLL de CUDA.
 - Auto-enganxar (Ctrl+V), inici amb Windows, instal·lador NSIS amb icona.
 
 **Fase 3 — només si cal**
@@ -87,5 +98,6 @@ Així A i B poden treballar alhora sense esperar-se.
 ## Riscos
 
 - **Micròfon**: Windows ha de permetre'l a les apps d'escriptori (Configuració → Privadesa → Micròfon).
-- **CUDA**: l'exe amb GPU pesa més (DLL de CUDA ~500 MB). Alternativa: backend Vulkan de whisper.cpp.
+- **Al·lucinacions**: amb silenci, Whisper s'inventa text. Si el volum és gairebé zero, s'avisa en lloc de transcriure; si amb soroll de fons encara passa, cal VAD.
+- **Compilar a Windows**: cal LLVM (libclang) i CMake. Sense el `/O2` de `src-tauri/.cargo/config.toml`, whisper.cpp va ~10 vegades més lent.
 - **Enganxar**: algunes apps elevades (administrador) no reben el Ctrl+V simulat. El text igualment queda copiat.
