@@ -27,6 +27,10 @@
               <option value="">El de Windows</option>
             </select>
           </label>
+          <label class="area">Paraules que dic sovint
+            <textarea name="vocabulari" rows="2" placeholder="Noms i termes separats per comes: Diga, Tauri, Ona…"></textarea>
+          </label>
+          <label class="check"><input type="checkbox" name="mode_net" /> Mode net: Claude endreça el text i entén ordres (envia el text a Anthropic)</label>
           <label class="check"><input type="checkbox" name="enganxar" /> Enganxar on tinc el cursor</label>
           <label class="check"><input type="checkbox" name="inici_amb_windows" /> Obrir amb Windows</label>
         </fieldset>
@@ -61,9 +65,10 @@
         </fieldset>
       </section>
 
+      <!-- Només es veu amb el mode net activat (main.ts) -->
       <form id="clau" hidden>
         <fieldset>
-          <legend>Clau d'API d'Anthropic</legend>
+          <legend>Clau d'API d'Anthropic (mode net)</legend>
           <p id="clau-estat">…</p>
           <label>Clau nova <input name="clau" type="password" autocomplete="off" placeholder="sk-ant-…" /></label>
           <div class="botons">

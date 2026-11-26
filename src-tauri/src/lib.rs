@@ -91,10 +91,10 @@ fn deixada(app: &AppHandle) {
             // Mode net: si Claude falla, es copia igualment el text del Whisper i s'avisa.
             sortida::estat(&app, "endreçant");
             match config::clau_api() {
-                None => sortida::copiar(&app, &text, Some("Mode net sense clau d'API: copiat tal qual")),
+                None => sortida::copiar(&app, &text, Some("falta la clau d'API")),
                 Some(clau) => match net::endrecar(&clau, &text, &vocabulari) {
                     Ok(net) => sortida::copiar(&app, &net, None),
-                    Err(e) => sortida::copiar(&app, &text, Some(&format!("{e}: copiat tal qual"))),
+                    Err(e) => sortida::copiar(&app, &text, Some(&e)),
                 },
             }
         });

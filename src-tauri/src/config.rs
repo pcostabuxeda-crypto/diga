@@ -150,6 +150,8 @@ mod tests {
         assert!(config.enganxar);
         assert_eq!(config.drecera_codi, Config::default().drecera_codi);
         assert_eq!(config.idioma, "ca");
+        assert_eq!(config.vocabulari, "");
+        assert!(!config.mode_net, "el mode net envia text a fora: mai actiu per defecte");
         assert_eq!(config.micro, ""); // sense micro desat = el de Windows
     }
 
