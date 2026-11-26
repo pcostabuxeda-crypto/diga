@@ -10,6 +10,7 @@ type Config = {
   inici_amb_windows: boolean;
   drecera_codi: string;
   llenguatge_codi: string;
+  micro: string;
 };
 
 const formConfig = document.querySelector<HTMLFormElement>("#config")!;
@@ -41,6 +42,7 @@ function llegeix(): Config {
     ...actual,
     drecera: camp("drecera").value.trim(),
     idioma: camp("idioma").value,
+    micro: camp("micro").value,
     enganxar: camp("enganxar").checked,
     inici_amb_windows: camp("inici_amb_windows").checked,
     drecera_codi: camp("drecera_codi").value.trim(),
@@ -123,7 +125,17 @@ baixaModel.addEventListener("click", async () => {
   }
 });
 
+// Abans d'omplir: el <select> ha de tenir l'opció del micro desat, encara que ara no hi sigui.
+async function omplMicros(desat: string) {
+  const select = camp("micro") as unknown as HTMLSelectElement;
+  const micros = await invoke<string[]>("llista_micros");
+  for (const nom of micros) select.add(new Option(nom, nom));
+  // Desendollat: es manté triat perquè no es perdi en desar.
+  if (desat && !micros.includes(desat)) select.add(new Option(`${desat} (no connectat)`, desat));
+}
+
 actual = await invoke<Config>("get_config");
+await omplMicros(actual.micro);
 omple(actual);
 await refrescaClau();
 await refrescaModel();

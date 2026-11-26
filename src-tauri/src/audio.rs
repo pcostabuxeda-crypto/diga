@@ -12,11 +12,26 @@ pub struct Gravacio {
     fil: JoinHandle<Vec<f32>>,
 }
 
-pub fn comencar() -> Result<Gravacio, String> {
+/// Noms dels micròfons connectats, per triar-ne un a la configuració.
+#[tauri::command]
+pub fn llista_micros() -> Vec<String> {
+    cpal::default_host()
+        .input_devices()
+        .map(|ds| ds.filter_map(|d| nom(&d)).collect())
+        .unwrap_or_default()
+}
+
+fn nom(d: &cpal::Device) -> Option<String> {
+    d.description().ok().map(|x| x.name().to_string())
+}
+
+/// `micro` buit = el micro per defecte de Windows. Si el triat no hi és (desconnectat),
+/// també es fa servir el de Windows.
+pub fn comencar(micro: String) -> Result<Gravacio, String> {
     let (aturar, rebre_aturar) = mpsc::channel();
     let (llest, rebre_llest) = mpsc::channel();
     let fil = std::thread::spawn(move || {
-        let (stream, mostres, hz, canals) = match obrir() {
+        let (stream, mostres, hz, canals) = match obrir(&micro) {
             Ok(v) => {
                 let _ = llest.send(Ok(()));
                 v
@@ -47,9 +62,20 @@ impl Gravacio {
 
 type Obert = (cpal::Stream, Arc<Mutex<Vec<f32>>>, u32, u16);
 
-fn obrir() -> Result<Obert, String> {
-    let device = cpal::default_host()
-        .default_input_device()
+fn obrir(micro: &str) -> Result<Obert, String> {
+    let host = cpal::default_host();
+    let triat = match micro {
+        "" => None,
+        _ => host
+            .input_devices()
+            .ok()
+            .and_then(|mut ds| ds.find(|d| nom(d).as_deref() == Some(micro))),
+    };
+    if triat.is_none() && !micro.is_empty() {
+        eprintln!("diga: no trobo el micro «{micro}», faig servir el de Windows");
+    }
+    let device = triat
+        .or_else(|| host.default_input_device())
         .ok_or("No hi ha cap micròfon")?;
     let config = device.default_input_config().map_err(|e| e.to_string())?;
     let (hz, canals, format) = (config.sample_rate(), config.channels(), config.sample_format());
