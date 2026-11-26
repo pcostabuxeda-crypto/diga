@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
-use tauri_plugin_global_shortcut::GlobalShortcutExt;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 use tauri_plugin_store::StoreExt;
 
 const FITXER: &str = "config.json";
@@ -24,7 +24,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            drecera: "Ctrl+Alt+Space".into(),
+            drecera: "Ctrl+Alt+D".into(),
             mode: "mantenir".into(),
             idioma: "ca".into(),
             enganxar: false,
@@ -76,10 +76,13 @@ fn canviar_drecera(app: &AppHandle, vella: &str, nova: &str) -> Result<(), Strin
     if vella.eq_ignore_ascii_case(nova) {
         return Ok(());
     }
+    let nova_drecera: Shortcut = nova
+        .parse()
+        .map_err(|_| format!("No entenc la drecera «{nova}». Escriu-la com «Ctrl+Alt+D»."))?;
     let dreceres = app.global_shortcut();
     dreceres
-        .register(nova)
-        .map_err(|e| format!("No puc fer servir la drecera «{nova}»: {e}"))?;
+        .register(nova_drecera)
+        .map_err(|e| format!("Aquesta drecera («{nova}») la fa servir una altra app: tria-ne una altra. ({e})"))?;
     let _ = dreceres.unregister(vella); // pot ser que la vella no estigués registrada
     Ok(())
 }
@@ -129,5 +132,13 @@ mod tests {
         assert!(config.enganxar);
         assert_eq!(config.drecera_codi, Config::default().drecera_codi);
         assert_eq!(config.idioma, "ca");
+    }
+
+    #[test]
+    fn les_dreceres_per_defecte_es_poden_llegir() {
+        let config = Config::default();
+        assert!(config.drecera.parse::<Shortcut>().is_ok());
+        assert!(config.drecera_codi.parse::<Shortcut>().is_ok());
+        assert!("Ctrl+Alt+".parse::<Shortcut>().is_err());
     }
 }
