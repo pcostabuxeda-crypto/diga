@@ -8,6 +8,58 @@
     <script type="module" src="/src/main.ts" defer></script>
   </head>
   <body>
-    <main><h1>Diga</h1></main>
+    <main>
+      <h1>Diga</h1>
+      <form id="config">
+        <fieldset>
+          <legend>Dictat</legend>
+          <label>Drecera <input name="drecera" required placeholder="Ctrl+Alt+D" /></label>
+          <label>Idioma
+            <select name="idioma">
+              <option value="ca">Català</option>
+              <option value="es">Castellà</option>
+              <option value="en">Anglès</option>
+              <option value="auto">Automàtic</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" name="enganxar" /> Enganxar on tinc el cursor</label>
+          <label class="check"><input type="checkbox" name="inici_amb_windows" /> Obrir amb Windows</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Mode codi</legend>
+          <label>Drecera <input name="drecera_codi" required placeholder="Ctrl+Alt+C" /></label>
+          <label>Llenguatge <input name="llenguatge_codi" list="llenguatges" required /></label>
+          <datalist id="llenguatges">
+            <option value="JavaScript"></option>
+            <option value="TypeScript"></option>
+            <option value="Python"></option>
+            <option value="PHP"></option>
+            <option value="HTML"></option>
+            <option value="CSS"></option>
+            <option value="SQL"></option>
+            <option value="Rust"></option>
+            <option value="C#"></option>
+          </datalist>
+        </fieldset>
+
+        <button type="submit">Desa</button>
+      </form>
+
+      <form id="clau">
+        <fieldset>
+          <legend>Clau d'API d'Anthropic</legend>
+          <p id="clau-estat">…</p>
+          <label>Clau nova <input name="clau" type="password" autocomplete="off" placeholder="sk-ant-…" /></label>
+          <div class="botons">
+            <button type="submit">Desa la clau</button>
+            <button type="button" id="esborra-clau">Esborra-la</button>
+          </div>
+          <small>Es desa al Gestor de credencials de Windows, no al fitxer de configuració.</small>
+        </fieldset>
+      </form>
+
+      <p id="missatge" role="status" aria-live="polite"></p>
+    </main>
   </body>
 </html>

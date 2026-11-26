@@ -1,4 +1,5 @@
 mod audio;
+mod config;
 mod safata;
 mod sortida;
 mod transcriure;
@@ -29,6 +30,12 @@ pub fn run() {
                 })
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![
+            config::get_config,
+            config::set_config,
+            config::te_clau_api,
+            config::set_clau_api,
+        ])
         .manage(Gravant::default())
         .setup(|app| {
             safata::crear(app)?;
