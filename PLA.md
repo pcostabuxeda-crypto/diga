@@ -58,13 +58,18 @@ Així A i B poden treballar alhora sense esperar-se.
 
 **Ordres** (UI → Rust)
 - `get_config() -> Config`
-- `set_config(config: Config)` — torna a registrar la drecera si ha canviat
+- `set_config(config: Config)` — torna a registrar les dreceres que hagin canviat; si una falla, no desa res
+- `te_clau_api() -> bool` — la clau mai viatja cap a la UI
+- `set_clau_api(clau: string)` — la desa al Gestor de credencials de Windows (`cat.diga.app` / `anthropic-api`); buida = esborrar-la
 - `descarregar_model() -> ()` — envia `diga://progres-model`
 - `model_present() -> bool`
 
-**Config** (`%APPDATA%\diga\config.json`, amb `tauri-plugin-store`)
+**Des de Rust**: `config::carregar(app) -> Config` i `config::clau_api() -> Option<String>` (per a `codi.rs`).
+
+**Config** (`%APPDATA%\cat.diga.app\config.json`, amb `tauri-plugin-store`, clau `"config"`)
 ```json
-{ "drecera": "Ctrl+Alt+Space", "mode": "mantenir", "idioma": "ca", "enganxar": false, "inici_amb_windows": false }
+{ "drecera": "Ctrl+Alt+Space", "mode": "mantenir", "idioma": "ca", "enganxar": false, "inici_amb_windows": false,
+  "drecera_codi": "Ctrl+Alt+C", "llenguatge_codi": "JavaScript" }
 ```
 
 ## Fases
