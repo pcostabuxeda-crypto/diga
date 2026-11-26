@@ -11,6 +11,8 @@ type Config = {
   drecera_codi: string;
   llenguatge_codi: string;
   micro: string;
+  vocabulari: string;
+  mode_net: boolean;
 };
 
 const formConfig = document.querySelector<HTMLFormElement>("#config")!;
@@ -43,6 +45,8 @@ function llegeix(): Config {
     drecera: camp("drecera").value.trim(),
     idioma: camp("idioma").value,
     micro: camp("micro").value,
+    vocabulari: camp("vocabulari").value.trim(),
+    mode_net: camp("mode_net").checked,
     enganxar: camp("enganxar").checked,
     inici_amb_windows: camp("inici_amb_windows").checked,
     drecera_codi: camp("drecera_codi").value.trim(),
@@ -50,10 +54,20 @@ function llegeix(): Config {
   };
 }
 
+let teClau = false;
+
 async function refrescaClau() {
-  const te = await invoke<boolean>("te_clau_api");
-  clauEstat.textContent = te ? "Hi ha una clau desada." : "No hi ha cap clau desada: el mode codi no funcionarà.";
+  teClau = await invoke<boolean>("te_clau_api");
+  clauEstat.textContent = teClau
+    ? "Hi ha una clau desada."
+    : "No hi ha cap clau desada: sense ella es copiarà el text sense endreçar.";
 }
+
+// La clau només cal per al mode net: es mostra quan la casella està marcada.
+function mostraClau() {
+  formClau.hidden = !camp("mode_net").checked;
+}
+camp("mode_net").addEventListener("change", mostraClau);
 
 async function desaClau(clau: string, fet: string) {
   try {
@@ -72,7 +86,11 @@ formConfig.addEventListener("submit", async (e) => {
   try {
     await invoke("set_config", { config: nova });
     actual = nova;
-    avisa("Configuració desada.");
+    avisa(
+      nova.mode_net && !teClau
+        ? "Configuració desada. Falta la clau d'API: fins que no la posis, el mode net no endreçarà res."
+        : "Configuració desada.",
+    );
   } catch (err) {
     avisa(String(err), true);
   }
@@ -137,5 +155,6 @@ async function omplMicros(desat: string) {
 actual = await invoke<Config>("get_config");
 await omplMicros(actual.micro);
 omple(actual);
+mostraClau();
 await refrescaClau();
 await refrescaModel();
