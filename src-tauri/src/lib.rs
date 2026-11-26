@@ -7,12 +7,7 @@ mod transcriure;
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Manager};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
-
-// shortcut: drecera i idioma fixos; quan B tingui config.rs, es llegeixen de la config.
-// Ctrl+Alt+Space no: sovint ja la fa servir una altra app (p. ex. Claude Desktop).
-const DRECERA: &str = "Ctrl+Alt+D";
-const IDIOMA: &str = "ca";
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 #[derive(Default)]
 struct Gravant(Mutex<Option<audio::Gravacio>>);
@@ -24,9 +19,11 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _, ev| match ev.state() {
-                    ShortcutState::Pressed => premuda(app),
-                    ShortcutState::Released => deixada(app),
+                .with_handler(|app, drecera, ev| match ev.state() {
+                    // Només la drecera de dictat: el mode codi està aparcat.
+                    ShortcutState::Pressed if es_dictat(app, drecera) => premuda(app),
+                    ShortcutState::Pressed => {}
+                    ShortcutState::Released => deixada(app), // no fa res si no s'està gravant
                 })
                 .build(),
         )
@@ -40,13 +37,18 @@ pub fn run() {
         .setup(|app| {
             safata::crear(app)?;
             // Si una altra app ja té la drecera, Diga segueix viva perquè es pugui canviar.
-            if let Err(e) = app.global_shortcut().register(DRECERA) {
-                eprintln!("diga: no es pot registrar {DRECERA}: {e}");
+            let drecera = config::carregar(app.handle()).drecera;
+            if let Err(e) = app.global_shortcut().register(drecera.as_str()) {
+                eprintln!("diga: no es pot registrar {drecera}: {e}");
             }
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error en arrencar Diga");
+}
+
+fn es_dictat(app: &AppHandle, drecera: &Shortcut) -> bool {
+    config::carregar(app).drecera.parse::<Shortcut>().is_ok_and(|d| &d == drecera)
 }
 
 fn premuda(app: &AppHandle) {
@@ -69,11 +71,12 @@ fn deixada(app: &AppHandle) {
         return;
     };
     sortida::estat(app, "transcrivint");
+    let idioma = config::carregar(app).idioma;
     let app = app.clone();
     // Fora del fil de la drecera: Whisper triga uns segons.
     std::thread::spawn(move || {
         let res = gravacio.aturar().and_then(|audio| {
-            let text = transcriure::transcriure(&transcriure::cami_model(&app)?, &audio, IDIOMA)?;
+            let text = transcriure::transcriure(&transcriure::cami_model(&app)?, &audio, &idioma)?;
             if text.is_empty() {
                 return Err("No s'ha entès res".into());
             }
