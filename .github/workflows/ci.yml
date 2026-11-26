@@ -6,24 +6,22 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    env:
-      TE_CODI: ${{ hashFiles('src-tauri/Cargo.toml') != '' }}
     steps:
       - uses: actions/checkout@v4
-      - if: env.TE_CODI != 'true'
+      - if: hashFiles('src-tauri/Cargo.toml') == ''
         run: echo "Encara no hi ha src-tauri; res a compilar"
-      - if: env.TE_CODI == 'true'
+      - if: hashFiles('src-tauri/Cargo.toml') != ''
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - if: env.TE_CODI == 'true'
+      - if: hashFiles('src-tauri/Cargo.toml') != ''
         run: npm ci; npm run build
-      - if: env.TE_CODI == 'true'
+      - if: hashFiles('src-tauri/Cargo.toml') != ''
         uses: dtolnay/rust-toolchain@stable
-      - if: env.TE_CODI == 'true'
+      - if: hashFiles('src-tauri/Cargo.toml') != ''
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - if: env.TE_CODI == 'true'
+      - if: hashFiles('src-tauri/Cargo.toml') != ''
         run: cargo test --manifest-path src-tauri/Cargo.toml
