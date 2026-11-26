@@ -26,7 +26,32 @@ struct Carregat {
 
 static CARREGAT: Mutex<Option<Carregat>> = Mutex::new(None);
 
-pub fn transcriure(cami: &Path, audio: &[f32], idioma: &str) -> Result<String, String> {
+/// Text que Whisper pren com a «el que s'ha dit abans»: li marca l'estil (puntuació,
+/// majúscules) i li fa conèixer les paraules pròpies de l'usuari.
+pub fn pista(idioma: &str, vocabulari: &str) -> String {
+    let estil = match idioma {
+        "ca" => "Bon dia. Aquesta és una transcripció en català, amb comes, punts i majúscules ben posats.",
+        "es" => "Buenos días. Esta es una transcripción en castellano, con comas, puntos y mayúsculas bien puestos.",
+        "en" => "Hello. This is an English transcription, with proper commas, periods and capital letters.",
+        _ => "",
+    };
+    let paraules: Vec<&str> = vocabulari
+        .split([',', '\n'])
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+        .collect();
+    if paraules.is_empty() {
+        return estil.to_string();
+    }
+    format!("{estil} {}.", paraules.join(", ")).trim().to_string()
+}
+
+pub fn transcriure(
+    cami: &Path,
+    audio: &[f32],
+    idioma: &str,
+    vocabulari: &str,
+) -> Result<String, String> {
     // Menys de 0,3 s és una pulsació sense voler.
     if audio.len() < HZ_WHISPER as usize * 3 / 10 {
         return Err("Massa curt: mantén la drecera mentre parles".into());
@@ -56,8 +81,13 @@ pub fn transcriure(cami: &Path, audio: &[f32], idioma: &str) -> Result<String, S
     let c = carregat.as_mut().unwrap();
 
     let mut state = c.ctx.create_state().map_err(|e| e.to_string())?;
+    // Greedy: el beam search (5) era un 50% més lent per guanyar molt poc (mesurat).
     let mut p = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
     p.set_language(Some(idioma));
+    let pista = pista(idioma, vocabulari);
+    if !pista.is_empty() {
+        p.set_initial_prompt(&pista);
+    }
     // Com a molt 4 fils: la resta de la CPU queda per a les altres apps.
     p.set_n_threads(std::thread::available_parallelism().map_or(4, |n| n.get().min(4) as i32));
     // Whisper processa 30 s d'àudio encara que en diguis 5: retallar la finestra
@@ -91,6 +121,15 @@ fn vigilar_repos() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn la_pista_porta_estil_i_vocabulari() {
+        let p = super::pista("ca", " Docker, Claude\npcosta-client ,, ");
+        assert!(p.starts_with("Bon dia."));
+        assert!(p.ends_with(" Docker, Claude, pcosta-client."));
+        assert_eq!(super::pista("auto", ""), "");
+        assert_eq!(super::pista("auto", "Diga"), "Diga.");
+    }
+
     /// Prova amb el model de veritat (WAV 16 kHz mono 16 bits):
     /// `DIGA_MODEL=… DIGA_WAV=… [DIGA_IDIOMA=es] cargo test -- --ignored --nocapture`
     #[test]
@@ -103,11 +142,12 @@ mod tests {
             .map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0)
             .collect();
         let idioma = std::env::var("DIGA_IDIOMA").unwrap_or("ca".into());
+        let vocabulari = std::env::var("DIGA_VOCABULARI").unwrap_or_default();
         // Dues passades: la primera inclou carregar el model.
         let mut text = String::new();
         for _ in 0..2 {
             let inici = std::time::Instant::now();
-            text = super::transcriure(model.as_ref(), &audio, &idioma).unwrap();
+            text = super::transcriure(model.as_ref(), &audio, &idioma, &vocabulari).unwrap();
             println!("[{:.1} s] {text}", inici.elapsed().as_secs_f32());
         }
         assert!(!text.is_empty());

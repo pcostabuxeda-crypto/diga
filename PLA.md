@@ -14,7 +14,9 @@ Prems una drecera, parles, i el text queda copiat (i, si vols, enganxat on tens 
 | Model | `ggml-small-q5_1.bin` (~190 MB) a la CPU, com a molt 4 fils | Mesurat: 0,8–1 s per frase i ~315 MB de RAM al PC de proves. Es baixa a `%APPDATA%\cat.diga.app\models` |
 | Repòs | El model es descarrega de memòria després de 5 min sense dictar | No ha de molestar jocs ni altres apps |
 | GPU | No, de moment | CUDA només va amb NVIDIA. Si mai cal, Vulkan (qualsevol GPU) |
-| Mode codi | **Claude Haiku 5.5** per API d'Anthropic (HTTP directe) | El portàtil no gasta RAM ni CPU i el cost per dictat és ínfim. Cada usuari hi posa la seva clau |
+| Dictat més llest (local) | Pista d'estil + vocabulari propi a Whisper (`initial_prompt`); greedy, no beam | Mesurat: el vocabulari encerta termes sense cost; el beam 5 era +50% de temps per guanyar poc |
+| Mode net (opcional) | **Claude Haiku 5.5** per API d'Anthropic (HTTP directe, `net.rs`): corregeix pel context, puntuació i ordres dictades | El portàtil no gasta RAM ni CPU, ~1 s i cost ínfim. Si falla, es copia el text del Whisper. Només s'envia el text, mai l'àudio |
+| Mode codi | Aparcat | Primer el dictat normal |
 | Git | GitHub Flow: branques `feature/`, PR, squash | [METODOLOGIA.md](../METODOLOGIA.md) |
 
 ## Com funciona
@@ -56,7 +58,9 @@ diga/
 Així A i B poden treballar alhora sense esperar-se.
 
 **Esdeveniments** (Rust → UI)
-- `diga://estat` → `{ estat: "escoltant" | "transcrivint" | "copiat" | "error", text?: string, error?: string }`
+- `diga://estat` → `{ estat: "escoltant" | "transcrivint" | "endreçant" | "copiat" | "error", text?: string, error?: string, avis?: string }`
+  - `endreçant`: el mode net està passant el text per Claude.
+  - `avis` (amb `copiat`): el mode net ha fallat i s'ha copiat el text del Whisper tal qual.
 - `diga://progres-model` → `{ baixat: number, total: number }`
 
 **Ordres** (UI → Rust)
@@ -72,7 +76,8 @@ Així A i B poden treballar alhora sense esperar-se.
 **Config** (`%APPDATA%\cat.diga.app\config.json`, amb `tauri-plugin-store`, clau `"config"`)
 ```json
 { "drecera": "Ctrl+Alt+D", "mode": "mantenir", "idioma": "ca", "enganxar": false, "inici_amb_windows": false,
-  "drecera_codi": "Ctrl+Alt+C", "llenguatge_codi": "JavaScript" }
+  "drecera_codi": "Ctrl+Alt+C", "llenguatge_codi": "JavaScript", "micro": "",
+  "vocabulari": "", "mode_net": false }
 ```
 
 ## Fases
