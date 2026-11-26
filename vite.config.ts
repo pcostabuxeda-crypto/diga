@@ -10,6 +10,10 @@ export default defineConfig(() => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
+  // dues finestres: configuració (index.html) i rètol d'estat (retol.html)
+  build: {
+    rollupOptions: { input: { main: "index.html", retol: "retol.html" } },
+  },
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,

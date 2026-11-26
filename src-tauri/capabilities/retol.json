@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "retol",
+  "description": "El rètol d'estat es mostra, s'amaga i es col·loca sol",
+  "windows": ["retol"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-position"
+  ]
+}
