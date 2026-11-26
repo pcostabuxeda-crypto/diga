@@ -35,7 +35,9 @@ diga/
 │  └─ retol.ts               rètol «escoltant / transcrivint / copiat»
 ├─ src-tauri/
 │  ├─ src/
-│  │  ├─ main.rs             arrencada, safata, registre de dreceres (A)
+│  │  ├─ main.rs             només crida lib::run (no tocar)
+│  │  ├─ lib.rs              arrencada, plugins, drecera i ordres (A; B hi afegeix les seves línies avisant)
+│  │  ├─ safata.rs           icona i menú de la safata (B)
 │  │  ├─ audio.rs            captura del micro (A)
 │  │  ├─ transcriure.rs      whisper (A)
 │  │  ├─ sortida.rs          porta-retalls + enganxar (A)

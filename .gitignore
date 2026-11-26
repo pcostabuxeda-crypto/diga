@@ -15,3 +15,7 @@ src-tauri/gen/
 .env
 .env.*
 !.env.example
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
