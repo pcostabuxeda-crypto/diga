@@ -1,0 +1,5 @@
+[env]
+# El crate cmake treu les optimitzacions de MSVC a whisper.cpp (Release sense /O2):
+# sense això, transcriure és ~10 vegades més lent. whisper-rs-sys passa les CMAKE_* a CMake.
+CMAKE_C_FLAGS_RELEASE = "-nologo -MD -O2 -Ob2 -DNDEBUG"
+CMAKE_CXX_FLAGS_RELEASE = "-nologo -MD -O2 -Ob2 -DNDEBUG /utf-8"
