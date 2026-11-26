@@ -1,6 +1,14 @@
 // Finestra de configuració. Contracte amb Rust a PLA.md.
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+
+// Oberta al navegador (localhost:1420) en lloc de la finestra de Diga: no hi ha Rust
+// al darrere i tots els botons fallarien. S'avisa i no es fa res més.
+if (!isTauri()) {
+  document.querySelector("main")!.innerHTML =
+    "<h1>Diga</h1><p>Aquesta pàgina només funciona dins de l'app. Obre-la des de la icona de Diga a la safata → <b>Configuració</b>.</p>";
+  throw new Error("Diga: configuració oberta fora de l'app");
+}
 
 type Config = {
   drecera: string;
