@@ -21,6 +21,8 @@ pub struct Config {
     pub inici_amb_windows: bool,
     pub drecera_codi: String,
     pub llenguatge_codi: String,
+    /// Nom del micro (com el dona `llista_micros`). Buit = el per defecte de Windows.
+    pub micro: String,
 }
 
 impl Default for Config {
@@ -33,6 +35,7 @@ impl Default for Config {
             inici_amb_windows: false,
             drecera_codi: "Ctrl+Alt+C".into(),
             llenguatge_codi: "JavaScript".into(),
+            micro: String::new(),
         }
     }
 }
@@ -141,6 +144,7 @@ mod tests {
         assert!(config.enganxar);
         assert_eq!(config.drecera_codi, Config::default().drecera_codi);
         assert_eq!(config.idioma, "ca");
+        assert_eq!(config.micro, ""); // sense micro desat = el de Windows
     }
 
     #[test]

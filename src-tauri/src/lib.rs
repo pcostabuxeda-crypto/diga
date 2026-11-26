@@ -35,6 +35,7 @@ pub fn run() {
             config::set_clau_api,
             models::model_present,
             models::descarregar_model,
+            audio::llista_micros,
         ])
         .manage(Gravant::default())
         .setup(|app| {
@@ -60,7 +61,7 @@ fn premuda(app: &AppHandle) {
     if g.is_some() {
         return; // repetició de tecla mentre es manté premuda
     }
-    match audio::comencar() {
+    match audio::comencar(config::carregar(app).micro) {
         Ok(r) => {
             *g = Some(r);
             sortida::estat(app, "escoltant");
