@@ -26,7 +26,8 @@
           <label class="check"><input type="checkbox" name="inici_amb_windows" /> Obrir amb Windows</label>
         </fieldset>
 
-        <fieldset>
+        <!-- Mode codi aparcat: `disabled` el treu també de la validació del formulari -->
+        <fieldset hidden disabled>
           <legend>Mode codi</legend>
           <label>Drecera <input name="drecera_codi" required placeholder="Ctrl+Alt+C" /></label>
           <label>Llenguatge <input name="llenguatge_codi" list="llenguatges" required /></label>
@@ -46,7 +47,16 @@
         <button type="submit">Desa</button>
       </form>
 
-      <form id="clau">
+      <section id="model">
+        <fieldset>
+          <legend>Model de veu</legend>
+          <p id="model-estat">…</p>
+          <progress id="model-progres" max="1" value="0" hidden></progress>
+          <div class="botons"><button type="button" id="baixa-model" hidden>Baixa el model (~190 MB)</button></div>
+        </fieldset>
+      </section>
+
+      <form id="clau" hidden>
         <fieldset>
           <legend>Clau d'API d'Anthropic</legend>
           <p id="clau-estat">…</p>

@@ -31,6 +31,11 @@ pub fn crear(app: &mut App) -> tauri::Result<()> {
             }
         });
     }
+
+    // Primer cop (sense model): obre la configuració perquè es vegi el botó de baixar-lo.
+    if crate::models::model_present(app.handle().clone()) == Ok(false) {
+        mostrar_configuracio(app.handle());
+    }
     Ok(())
 }
 

@@ -1,5 +1,6 @@
 mod audio;
 mod config;
+mod models;
 mod safata;
 mod sortida;
 mod transcriure;
@@ -35,6 +36,8 @@ pub fn run() {
             config::set_config,
             config::te_clau_api,
             config::set_clau_api,
+            models::model_present,
+            models::descarregar_model,
         ])
         .manage(Gravant::default())
         .setup(|app| {
