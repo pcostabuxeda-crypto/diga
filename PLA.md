@@ -59,7 +59,7 @@ Així A i B poden treballar alhora sense esperar-se.
 
 **Esdeveniments** (Rust → UI)
 - `diga://estat` → `{ estat: "escoltant" | "transcrivint" | "endreçant" | "copiat" | "error", text?: string, error?: string, avis?: string }`
-  - `escoltant` amb `text`: el que s'ha entès fins ara (es retranscriu tot l'àudio cada ~0,7 s mentre es parla).
+  - `escoltant` amb `text`: el que s'ha entès fins ara (es retranscriu tot l'àudio contínuament mentre es parla; el rètol hi fa aparèixer les paraules noves una a una).
   - `endreçant`: el mode net està passant el text per Claude.
   - `avis` (amb `copiat`): el mode net ha fallat i s'ha copiat el text del Whisper tal qual.
 - `diga://progres-model` → `{ baixat: number, total: number }`
