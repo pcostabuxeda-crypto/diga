@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Icona de Diga: una bombolla de diàleg amb ones de veu, amb els colors del rètol. -->
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="#1e1e1e"/>
+  <path d="M232 220h560a96 96 0 0 1 96 96v336a96 96 0 0 1-96 96H460l-172 132v-132h-56a96 96 0 0 1-96-96V316a96 96 0 0 1 96-96z" fill="#fff"/>
+  <g fill="#ff4d4d">
+    <rect x="300" y="420" width="72" height="136" rx="36"/>
+    <rect x="420" y="340" width="72" height="296" rx="36"/>
+    <rect x="540" y="380" width="72" height="216" rx="36"/>
+    <rect x="660" y="440" width="72" height="96" rx="36"/>
+  </g>
+</svg>
