@@ -104,6 +104,6 @@ Així A i B poden treballar alhora sense esperar-se.
 ## Riscos
 
 - **Micròfon**: Windows ha de permetre'l a les apps d'escriptori (Configuració → Privadesa → Micròfon).
-- **Al·lucinacions**: amb silenci, Whisper s'inventa text. Si el volum és gairebé zero, s'avisa en lloc de transcriure; si amb soroll de fons encara passa, cal VAD.
+- **Al·lucinacions**: amb silenci o soroll, Whisper s'inventa text. Ara el VAD Silero (`resources/ggml-silero-v5.1.2.bin`, 885 KB, dins l'app) li passa només els trossos amb veu; si no n'hi ha, s'avisa. Si el volum és gairebé zero, s'avisa abans (micro silenciat). Mesurat: amb 5 s de soroll, sense VAD inventava una frase; amb VAD avisa, i una frase amb 6 s de soroll al voltant passa de 2 s a 1,1 s.
 - **Compilar a Windows**: cal LLVM (libclang) i CMake. Sense el `/O2` de `src-tauri/.cargo/config.toml`, whisper.cpp va ~10 vegades més lent.
 - **Enganxar**: algunes apps elevades (administrador) no reben el Ctrl+V simulat. El text igualment queda copiat.

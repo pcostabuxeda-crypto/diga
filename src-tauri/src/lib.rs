@@ -77,14 +77,16 @@ fn premuda(app: &AppHandle) {
 /// De pas, carrega el model abans de deixar la drecera.
 fn en_viu(app: AppHandle, en_curs: audio::EnCurs) {
     std::thread::spawn(move || {
-        let Ok(cami) = transcriure::cami_model(&app) else { return };
+        let (Ok(cami), Ok(vad)) = (transcriure::cami_model(&app), transcriure::cami_vad(&app)) else {
+            return;
+        };
         let config::Config { idioma, vocabulari, .. } = config::carregar(&app);
         loop {
             std::thread::sleep(Duration::from_millis(700));
             let Some(audio) = en_curs.audio() else { return };
             // En deixar la drecera s'avorta la passada: la final no ha d'esperar-la.
             let viu = en_curs.clone();
-            let parcial = transcriure::transcriure(&cami, &audio, &idioma, &vocabulari, move || !viu.viu());
+            let parcial = transcriure::transcriure(&cami, &vad, &audio, &idioma, &vocabulari, move || !viu.viu());
             // Els errors (massa curt, silenci, sense model) ja els dirà la passada final.
             if let Ok(text) = parcial.as_deref()
                 && !text.is_empty()
@@ -106,7 +108,8 @@ fn deixada(app: &AppHandle) {
     // Fora del fil de la drecera: Whisper triga uns segons.
     std::thread::spawn(move || {
         let res = gravacio.aturar().and_then(|audio| {
-            let text = transcriure::transcriure(&transcriure::cami_model(&app)?, &audio, &idioma, &vocabulari, || false)?;
+            let (cami, vad) = (transcriure::cami_model(&app)?, transcriure::cami_vad(&app)?);
+            let text = transcriure::transcriure(&cami, &vad, &audio, &idioma, &vocabulari, || false)?;
             if text.is_empty() {
                 return Err("No s'ha entès res".into());
             }
