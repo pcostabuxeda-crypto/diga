@@ -20,6 +20,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, drecera, ev| match ev.state() {
@@ -43,9 +44,12 @@ pub fn run() {
         .setup(|app| {
             safata::crear(app)?;
             // Si una altra app ja té la drecera, Diga segueix viva perquè es pugui canviar.
-            let drecera = config::carregar(app.handle()).drecera;
+            let config::Config { drecera, inici_amb_windows, .. } = config::carregar(app.handle());
             if let Err(e) = app.global_shortcut().register(drecera.as_str()) {
                 eprintln!("diga: no es pot registrar {drecera}: {e}");
+            }
+            if let Err(e) = config::aplicar_inici(app.handle(), inici_amb_windows) {
+                eprintln!("diga: {e}");
             }
             Ok(())
         })
