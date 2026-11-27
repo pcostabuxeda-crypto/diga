@@ -11,6 +11,8 @@ src-tauri/gen/
 
 # Models Whisper (es baixen en executar)
 *.bin
+# El VAD és petit i va dins l'app
+!src-tauri/resources/ggml-silero-v5.1.2.bin
 
 .env
 .env.*

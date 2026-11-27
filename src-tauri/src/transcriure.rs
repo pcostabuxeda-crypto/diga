@@ -2,8 +2,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+use whisper_rs::{
+    FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperVadContext,
+    WhisperVadContextParams, WhisperVadParams,
+};
 
 use crate::audio::HZ_WHISPER;
 
@@ -16,11 +20,20 @@ pub fn cami_model(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("models").join(MODEL))
 }
 
+/// Model Silero de detecció de veu (VAD). Va dins l'app: fa 885 KB.
+const VAD: &str = "resources/ggml-silero-v5.1.2.bin";
+
+pub fn cami_vad(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path().resolve(VAD, BaseDirectory::Resource).map_err(|e| e.to_string())
+}
+
 /// Temps sense dictar abans d'alliberar el model i la memòria: Diga no ha de molestar la resta d'apps.
 const REPOS: Duration = Duration::from_secs(5 * 60);
 
 struct Carregat {
     ctx: WhisperContext,
+    /// `None` si no s'ha pogut carregar: llavors es transcriu tot l'àudio, com abans.
+    vad: Option<WhisperVadContext>,
     ultim_us: Instant,
 }
 
@@ -48,6 +61,7 @@ pub fn pista(idioma: &str, vocabulari: &str) -> String {
 
 pub fn transcriure<F: FnMut() -> bool + 'static>(
     cami: &Path,
+    cami_vad: &Path,
     audio: &[f32],
     idioma: &str,
     vocabulari: &str,
@@ -57,15 +71,10 @@ pub fn transcriure<F: FnMut() -> bool + 'static>(
     if audio.len() < HZ_WHISPER as usize * 3 / 10 {
         return Err("Massa curt: mantén la drecera mentre parles".into());
     }
-    // Amb silenci, Whisper s'inventa text: millor avisar.
-    // shortcut: llindar fix pensat per a micro silenciat o sense permís; si amb ús real
-    // encara al·lucina amb soroll de fons, calibrar-lo o posar-hi VAD (whisper-rs en porta).
+    // Micro silenciat o sense permís: un missatge més clar que el del VAD.
     if crate::audio::volum(audio) < 0.001 {
         return Err("No s'ha sentit res: mira que el micro no estigui silenciat".into());
     }
-    // Whisper vol com a mínim 1 s: s'omple amb silenci.
-    let mut audio = audio.to_vec();
-    audio.resize(audio.len().max(HZ_WHISPER as usize * 11 / 10), 0.0);
 
     let mut carregat = CARREGAT.lock().unwrap_or_else(|e| e.into_inner());
     if carregat.is_none() {
@@ -76,10 +85,32 @@ pub fn transcriure<F: FnMut() -> bool + 'static>(
         params.flash_attn(true); // menys memòria i més ràpid
         let ctx = WhisperContext::new_with_params(cami, params)
             .map_err(|e| format!("No s'ha pogut carregar el model: {e}"))?;
-        *carregat = Some(Carregat { ctx, ultim_us: Instant::now() });
+        let vad = WhisperVadContext::new(&cami_vad.to_string_lossy(), WhisperVadContextParams::new())
+            .inspect_err(|e| eprintln!("diga: sense VAD ({}): {e}", cami_vad.display()))
+            .ok();
+        *carregat = Some(Carregat { ctx, vad, ultim_us: Instant::now() });
         vigilar_repos();
     }
     let c = carregat.as_mut().unwrap();
+
+    // Amb silenci o soroll, Whisper s'inventa text: només li passem els trossos amb veu.
+    let mut audio = match c.vad.as_mut() {
+        None => audio.to_vec(),
+        Some(vad) => {
+            let trams: Vec<(f32, f32)> = vad
+                .segments_from_samples(WhisperVadParams::new(), audio)
+                .map_err(|e| format!("VAD: {e}"))?
+                .map(|t| (t.start, t.end))
+                .collect();
+            let veu = nomes_veu(audio, &trams);
+            if veu.is_empty() {
+                return Err("No s'ha sentit cap paraula".into());
+            }
+            veu
+        }
+    };
+    // Whisper vol com a mínim 1 s: s'omple amb silenci.
+    audio.resize(audio.len().max(HZ_WHISPER as usize * 11 / 10), 0.0);
 
     let mut state = c.ctx.create_state().map_err(|e| e.to_string())?;
     // Greedy: el beam search (5) era un 50% més lent per guanyar molt poc (mesurat).
@@ -109,6 +140,24 @@ pub fn transcriure<F: FnMut() -> bool + 'static>(
     Ok(text.trim().to_string())
 }
 
+/// Uneix els trams amb veu (en centisegons, com els dona el VAD) amb 0,1 s de silenci
+/// entre ells, perquè Whisper no hi enganxi paraules.
+fn nomes_veu(audio: &[f32], trams: &[(f32, f32)]) -> Vec<f32> {
+    let mostra = |cs: f32| ((cs * HZ_WHISPER as f32 / 100.0) as usize).min(audio.len());
+    let mut veu = Vec::new();
+    for &(inici, fi) in trams {
+        let (a, b) = (mostra(inici), mostra(fi));
+        if a >= b {
+            continue;
+        }
+        if !veu.is_empty() {
+            veu.resize(veu.len() + HZ_WHISPER as usize / 10, 0.0);
+        }
+        veu.extend_from_slice(&audio[a..b]);
+    }
+    veu
+}
+
 /// Allibera el model quan fa `REPOS` que no es fa servir. El fil s'acaba en alliberar-lo.
 fn vigilar_repos() {
     std::thread::spawn(|| loop {
@@ -124,6 +173,18 @@ fn vigilar_repos() {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn nomes_veu_uneix_els_trams_amb_silenci() {
+        let audio: Vec<f32> = (0..32_000).map(|i| i as f32).collect(); // 2 s
+        // De 0,1 a 0,2 s i de 1,5 s fins més enllà del final.
+        let veu = super::nomes_veu(&audio, &[(10.0, 20.0), (150.0, 999.0)]);
+        assert_eq!(veu.len(), 1_600 + 1_600 + 8_000);
+        assert_eq!(veu[0], 1_600.0);
+        assert_eq!(veu[1_600], 0.0);
+        assert_eq!(veu[3_200], 24_000.0);
+        assert!(super::nomes_veu(&audio, &[]).is_empty());
+    }
+
+    #[test]
     fn la_pista_porta_estil_i_vocabulari() {
         let p = super::pista("ca", " Docker, Claude\npcosta-client ,, ");
         assert!(p.starts_with("Bon dia."));
@@ -133,7 +194,7 @@ mod tests {
     }
 
     /// Prova amb el model de veritat (WAV 16 kHz mono 16 bits):
-    /// `DIGA_MODEL=… DIGA_WAV=… [DIGA_IDIOMA=es] cargo test -- --ignored --nocapture`
+    /// `DIGA_MODEL=… DIGA_WAV=… [DIGA_IDIOMA=es] [DIGA_VAD=…] cargo test -- --ignored --nocapture`
     #[test]
     #[ignore]
     fn transcriu_un_wav() {
@@ -145,11 +206,12 @@ mod tests {
             .collect();
         let idioma = std::env::var("DIGA_IDIOMA").unwrap_or("ca".into());
         let vocabulari = std::env::var("DIGA_VOCABULARI").unwrap_or_default();
+        let vad = std::env::var("DIGA_VAD").unwrap_or("resources/ggml-silero-v5.1.2.bin".into());
         // Dues passades: la primera inclou carregar el model.
         let mut text = String::new();
         for _ in 0..2 {
             let inici = std::time::Instant::now();
-            text = super::transcriure(model.as_ref(), &audio, &idioma, &vocabulari, || false).unwrap();
+            text = super::transcriure(model.as_ref(), vad.as_ref(), &audio, &idioma, &vocabulari, || false).unwrap();
             println!("[{:.1} s] {text}", inici.elapsed().as_secs_f32());
         }
         assert!(!text.is_empty());
