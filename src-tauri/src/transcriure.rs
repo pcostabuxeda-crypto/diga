@@ -46,11 +46,12 @@ pub fn pista(idioma: &str, vocabulari: &str) -> String {
     format!("{estil} {}.", paraules.join(", ")).trim().to_string()
 }
 
-pub fn transcriure(
+pub fn transcriure<F: FnMut() -> bool + 'static>(
     cami: &Path,
     audio: &[f32],
     idioma: &str,
     vocabulari: &str,
+    parar: F,
 ) -> Result<String, String> {
     // Menys de 0,3 s és una pulsació sense voler.
     if audio.len() < HZ_WHISPER as usize * 3 / 10 {
@@ -100,6 +101,7 @@ pub fn transcriure(
     p.set_print_progress(false);
     p.set_print_realtime(false);
     p.set_print_timestamps(false);
+    p.set_abort_callback_safe::<_, F>(Some(parar));
     state.full(p, &audio).map_err(|e| e.to_string())?;
     c.ultim_us = Instant::now();
 
@@ -147,7 +149,7 @@ mod tests {
         let mut text = String::new();
         for _ in 0..2 {
             let inici = std::time::Instant::now();
-            text = super::transcriure(model.as_ref(), &audio, &idioma, &vocabulari).unwrap();
+            text = super::transcriure(model.as_ref(), &audio, &idioma, &vocabulari, || false).unwrap();
             println!("[{:.1} s] {text}", inici.elapsed().as_secs_f32());
         }
         assert!(!text.is_empty());

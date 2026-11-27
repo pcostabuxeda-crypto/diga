@@ -23,6 +23,11 @@ pub fn estat(app: &AppHandle, estat: &str) {
     emetre(app, Estat { estat, text: None, error: None, avis: None });
 }
 
+/// El text que es va entenent mentre es parla.
+pub fn parcial(app: &AppHandle, text: &str) {
+    emetre(app, Estat { estat: "escoltant", text: Some(text), error: None, avis: None });
+}
+
 pub fn error(app: &AppHandle, error: &str) {
     eprintln!("diga: {error}");
     emetre(app, Estat { estat: "error", text: None, error: Some(error), avis: None });
