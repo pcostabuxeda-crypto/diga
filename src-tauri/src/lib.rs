@@ -86,7 +86,7 @@ fn en_viu(app: AppHandle, en_curs: audio::EnCurs) {
         };
         let config::Config { idioma, vocabulari, .. } = config::carregar(&app);
         loop {
-            std::thread::sleep(Duration::from_millis(700));
+            std::thread::sleep(Duration::from_millis(300));
             let Some(audio) = en_curs.audio() else { return };
             // En deixar la drecera s'avorta la passada: la final no ha d'esperar-la.
             let viu = en_curs.clone();

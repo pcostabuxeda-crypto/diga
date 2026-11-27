@@ -28,6 +28,35 @@ const text = document.querySelector<HTMLDivElement>("#text")!;
 let temporitzador: number | undefined;
 let colocat = false; // només la primera vegada: després es queda on l'hagis arrossegat
 
+// Whisper torna tot el text cada cop: les paraules noves s'escriuen una a una perquè
+// sembli que surten mentre parles. El que Whisper corregeix es canvia de cop.
+const PAS_PARAULA = 60; // ms entre paraules
+const sensePresses = matchMedia("(prefers-reduced-motion: reduce)");
+let paraules: string[] = []; // les que es veuen
+let objectiu: string[] = [];
+let maquina: number | undefined;
+
+function posaText(nou: string, deCop: boolean) {
+  objectiu = nou.split(/\s+/).filter(Boolean);
+  let iguals = 0;
+  while (iguals < paraules.length && paraules[iguals] === objectiu[iguals]) iguals++;
+  paraules = deCop || sensePresses.matches ? [...objectiu] : paraules.slice(0, iguals);
+  pinta();
+  clearInterval(maquina);
+  if (paraules.length < objectiu.length) {
+    maquina = window.setInterval(() => {
+      paraules.push(objectiu[paraules.length]);
+      pinta();
+      if (paraules.length >= objectiu.length) clearInterval(maquina);
+    }, PAS_PARAULA);
+  }
+}
+
+function pinta() {
+  text.textContent = paraules.join(" ");
+  text.scrollTop = text.scrollHeight; // les últimes línies
+}
+
 retol.addEventListener("mousedown", (e) => {
   if (e.button === 0) finestra.startDragging();
 });
@@ -54,9 +83,9 @@ listen<Estat>("diga://estat", async ({ payload }) => {
       : TEXTOS[payload.estat];
   retol.title = avis ?? payload.text ?? "";
   // Transcrivint i endreçant mantenen el text d'abans; un dictat nou o un error el buiden.
-  if (payload.text !== undefined) text.textContent = payload.text;
-  else if (payload.estat === "escoltant" || payload.estat === "error") text.textContent = "";
-  text.scrollTop = text.scrollHeight; // les últimes línies
+  // El text final (copiat) surt sencer de cop.
+  if (payload.text !== undefined) posaText(payload.text, payload.estat !== "escoltant");
+  else if (payload.estat === "escoltant" || payload.estat === "error") posaText("", true);
 
   if (!colocat) {
     await colocaAbaix();
