@@ -77,6 +77,10 @@ pub fn set_config(app: AppHandle, config: Config) -> Result<(), String> {
     }
 
     let vella = carregar(&app);
+    // Primer l'inici amb Windows: si falla, encara no s'ha canviat res.
+    if config.inici_amb_windows != vella.inici_amb_windows {
+        aplicar_inici(&app, config.inici_amb_windows)?;
+    }
     canviar_drecera(&app, &vella.drecera, &config.drecera)?;
     if MODE_CODI {
         if let Err(e) = canviar_drecera(&app, &vella.drecera_codi, &config.drecera_codi) {
@@ -88,6 +92,21 @@ pub fn set_config(app: AppHandle, config: Config) -> Result<(), String> {
     let store = app.store(FITXER).map_err(|e| e.to_string())?;
     store.set(CLAU_STORE, serde_json::to_value(&config).map_err(|e| e.to_string())?);
     store.save().map_err(|e| format!("No s'ha pogut desar la configuració: {e}"))
+}
+
+/// Fa que Windows obri (o no) Diga en iniciar la sessió.
+/// Activar-lo sempre reescriu el camí de l'exe, per si l'app s'ha mogut.
+pub fn aplicar_inici(app: &AppHandle, actiu: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let inici = app.autolaunch();
+    let res = if actiu {
+        inici.enable()
+    } else if inici.is_enabled().unwrap_or(true) {
+        inici.disable()
+    } else {
+        Ok(())
+    };
+    res.map_err(|e| format!("No s'ha pogut canviar l'inici amb Windows: {e}"))
 }
 
 fn canviar_drecera(app: &AppHandle, vella: &str, nova: &str) -> Result<(), String> {
