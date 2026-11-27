@@ -1,4 +1,5 @@
-// Rètol flotant «escoltant / transcrivint / endreçant / copiat». Escolta `diga://estat` (contracte a PLA.md).
+// Rètol flotant «escoltant / transcrivint / endreçant / copiat» amb el text que es va entenent.
+// Es pot arrossegar. Escolta `diga://estat` (contracte a PLA.md).
 import { listen } from "@tauri-apps/api/event";
 import { currentMonitor, getCurrentWindow, PhysicalPosition, primaryMonitor } from "@tauri-apps/api/window";
 
@@ -22,7 +23,14 @@ const MARGE_INFERIOR = 24; // px lògics per sobre de la barra de tasques
 
 const finestra = getCurrentWindow();
 const retol = document.querySelector<HTMLDivElement>("#retol")!;
+const estat = document.querySelector<HTMLDivElement>("#estat")!;
+const text = document.querySelector<HTMLDivElement>("#text")!;
 let temporitzador: number | undefined;
+let colocat = false; // només la primera vegada: després es queda on l'hagis arrossegat
+
+retol.addEventListener("mousedown", (e) => {
+  if (e.button === 0) finestra.startDragging();
+});
 
 // A baix al mig de l'àrea de treball (sense la barra de tasques).
 async function colocaAbaix() {
@@ -39,14 +47,21 @@ listen<Estat>("diga://estat", async ({ payload }) => {
   clearTimeout(temporitzador);
   const avis = payload.estat === "copiat" ? payload.avis : undefined;
   retol.dataset.estat = avis ? "avis" : payload.estat;
-  retol.textContent = avis
+  estat.textContent = avis
     ? `Copiat sense endreçar: ${avis}`
     : payload.estat === "error" && payload.error
       ? payload.error
       : TEXTOS[payload.estat];
   retol.title = avis ?? payload.text ?? "";
+  // Transcrivint i endreçant mantenen el text d'abans; un dictat nou o un error el buiden.
+  if (payload.text !== undefined) text.textContent = payload.text;
+  else if (payload.estat === "escoltant" || payload.estat === "error") text.textContent = "";
+  text.scrollTop = text.scrollHeight; // les últimes línies
 
-  await colocaAbaix();
+  if (!colocat) {
+    await colocaAbaix();
+    colocat = true;
+  }
   await finestra.show();
 
   const ms = avis ? AMAGA_AMB_AVIS : AMAGA_DESPRES[payload.estat];

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, Mutex, Weak, mpsc};
 use std::thread::JoinHandle;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -10,6 +10,28 @@ pub const HZ_WHISPER: u32 = 16_000;
 pub struct Gravacio {
     aturar: mpsc::Sender<()>,
     fil: JoinHandle<Vec<f32>>,
+    en_curs: EnCurs,
+}
+
+/// L'àudio mentre es grava, per anar-lo transcrivint. Mor quan s'atura la gravació.
+#[derive(Clone)]
+pub struct EnCurs {
+    mostres: Weak<Mutex<Vec<f32>>>,
+    hz: u32,
+    canals: u16,
+}
+
+impl EnCurs {
+    pub fn viu(&self) -> bool {
+        self.mostres.strong_count() > 0
+    }
+
+    /// El que s'ha gravat fins ara, a 16 kHz mono. `None` si ja s'ha aturat.
+    pub fn audio(&self) -> Option<Vec<f32>> {
+        let m = self.mostres.upgrade()?;
+        let v = m.lock().ok()?.clone();
+        Some(a_16k_mono(&v, self.canals, self.hz))
+    }
 }
 
 /// Noms dels micròfons connectats, per triar-ne un a la configuració.
@@ -33,7 +55,7 @@ pub fn comencar(micro: String) -> Result<Gravacio, String> {
     let fil = std::thread::spawn(move || {
         let (stream, mostres, hz, canals) = match obrir(&micro) {
             Ok(v) => {
-                let _ = llest.send(Ok(()));
+                let _ = llest.send(Ok(EnCurs { mostres: Arc::downgrade(&v.1), hz: v.2, canals: v.3 }));
                 v
             }
             Err(e) => {
@@ -46,13 +68,17 @@ pub fn comencar(micro: String) -> Result<Gravacio, String> {
         let mostres = std::mem::take(&mut *mostres.lock().unwrap());
         a_16k_mono(&mostres, canals, hz)
     });
-    rebre_llest
+    let en_curs = rebre_llest
         .recv()
         .map_err(|_| "El fil d'àudio ha caigut".to_string())??;
-    Ok(Gravacio { aturar, fil })
+    Ok(Gravacio { aturar, fil, en_curs })
 }
 
 impl Gravacio {
+    pub fn en_curs(&self) -> EnCurs {
+        self.en_curs.clone()
+    }
+
     /// Atura el micro i torna l'àudio a 16 kHz mono, com el vol Whisper.
     pub fn aturar(self) -> Result<Vec<f32>, String> {
         let _ = self.aturar.send(());
@@ -166,6 +192,16 @@ mod tests {
     fn volum_del_silenci_i_de_la_veu() {
         assert_eq!(volum(&[0.0; 100]), 0.0);
         assert!((volum(&[0.5, -0.5]) - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn en_curs_mor_amb_la_gravacio() {
+        let mostres = Arc::new(Mutex::new(vec![0.5; 32_000]));
+        let e = EnCurs { mostres: Arc::downgrade(&mostres), hz: 32_000, canals: 2 };
+        assert!(e.viu());
+        assert_eq!(e.audio().unwrap().len(), 8_000);
+        drop(mostres);
+        assert!(!e.viu() && e.audio().is_none());
     }
 
     #[test]

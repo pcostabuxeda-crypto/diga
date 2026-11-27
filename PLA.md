@@ -29,7 +29,7 @@ drecera deixada ──► whisper (idioma: ca, o auto) ──► porta-retalls
 
 - Mode: **mantenir** la drecera mentre parles. (Prémer per començar i per acabar: Fase 3.)
 - Drecera per defecte: `Ctrl+Alt+D` (configurable). `Ctrl+Alt+Espai` ja la fa servir una altra app en aquest PC. `Win+H` és el dictat de Windows: no el trepitgem.
-- Viu a la safata del sistema. Mostra un rètol petit: escoltant → transcrivint → copiat.
+- Viu a la safata del sistema. Mostra un rètol a sobre de la barra de tasques (es pot arrossegar): escoltant → transcrivint → copiat, amb el text que va entenent mentre parles.
 
 ## Estructura
 
@@ -59,6 +59,7 @@ Així A i B poden treballar alhora sense esperar-se.
 
 **Esdeveniments** (Rust → UI)
 - `diga://estat` → `{ estat: "escoltant" | "transcrivint" | "endreçant" | "copiat" | "error", text?: string, error?: string, avis?: string }`
+  - `escoltant` amb `text`: el que s'ha entès fins ara (es retranscriu tot l'àudio cada ~0,7 s mentre es parla).
   - `endreçant`: el mode net està passant el text per Claude.
   - `avis` (amb `copiat`): el mode net ha fallat i s'ha copiat el text del Whisper tal qual.
 - `diga://progres-model` → `{ baixat: number, total: number }`

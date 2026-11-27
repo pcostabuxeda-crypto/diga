@@ -1,20 +1,24 @@
 html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
-body { display: grid; place-items: center; font: 600 14px system-ui, sans-serif; user-select: none; cursor: default; }
+/* El globus seu a baix de la finestra i creix cap amunt quan hi ha text. */
+body { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; font: 600 14px system-ui, sans-serif; user-select: none; cursor: default; }
 #retol {
   --color: #4a9eff;
-  display: flex; align-items: center; gap: 8px;
+  display: flex; flex-direction: column; gap: 6px;
   max-width: calc(100% - 8px); padding: 8px 14px; box-sizing: border-box;
-  border-radius: 999px; background: #1e1e1eee; color: #fff;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-radius: 18px; background: #1e1e1eee; color: #fff; cursor: move;
 }
-#retol::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--color); }
+#retol:has(#text:not(:empty)) { width: calc(100% - 8px); }
+#estat { display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#estat::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--color); }
+#text { font-weight: 400; line-height: 1.4; max-height: 5.6em; overflow: hidden; overflow-wrap: anywhere; }
+#text:empty { display: none; }
 #retol[data-estat="escoltant"] { --color: #ff4d4d; }
-#retol[data-estat="escoltant"]::before { animation: batec 1s ease-in-out infinite; }
+#retol[data-estat="escoltant"] #estat::before { animation: batec 1s ease-in-out infinite; }
 #retol[data-estat="transcrivint"] { --color: #ffb020; }
 #retol[data-estat="endreçant"] { --color: #a58bff; }
-#retol[data-estat="endreçant"]::before { animation: batec 1s ease-in-out infinite; }
+#retol[data-estat="endreçant"] #estat::before { animation: batec 1s ease-in-out infinite; }
 #retol[data-estat="copiat"] { --color: #2ecc71; }
 #retol[data-estat="avis"] { --color: #ffb020; }
 #retol[data-estat="error"] { --color: #ff4d4d; background: #5a1414ee; }
 @keyframes batec { 50% { opacity: 0.3; } }
-@media (prefers-reduced-motion: reduce) { #retol::before { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { #estat::before { animation: none !important; } }
