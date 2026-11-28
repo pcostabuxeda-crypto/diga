@@ -4,6 +4,7 @@ mod models;
 mod net;
 mod safata;
 mod sortida;
+mod text;
 mod transcriure;
 
 use std::sync::Mutex;
