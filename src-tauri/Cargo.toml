@@ -1,3 +1,4 @@
+# Portat de Handy (https://github.com/cjpais/Handy, MIT) - single instance
 [package]
 name = "diga"
 version = "0.1.0"
@@ -23,6 +24,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-store = "2"
+tauri-plugin-single-instance = "2"
 cpal = "0.18.2"
 whisper-rs = "0.16.0"
 keyring = { version = "3", features = ["windows-native"] }

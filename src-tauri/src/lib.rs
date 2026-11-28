@@ -1,3 +1,4 @@
+// Portat de Handy (https://github.com/cjpais/Handy, MIT) - single instance
 mod audio;
 mod config;
 mod models;
@@ -18,6 +19,13 @@ struct Gravant(Mutex<Option<audio::Gravacio>>);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // Si ja hi ha una instància, mostra i activa la finestra principal.
+            if let Some(window) = app.get_webview_window("main") {
+                window.show().ok();
+                window.set_focus().ok();
+            }
+        }))
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
