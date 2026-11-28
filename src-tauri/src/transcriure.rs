@@ -137,7 +137,10 @@ pub fn transcriure<F: FnMut() -> bool + 'static>(
     c.ultim_us = Instant::now();
 
     let text: String = state.as_iter().map(|s| s.to_string()).collect();
-    Ok(text.trim().to_string())
+    let text = text.trim().to_string();
+    let text = crate::text::aplicar_vocabulari(&text, vocabulari);
+    let text = crate::text::netejar_falques(&text, idioma);
+    Ok(text)
 }
 
 /// Uneix els trams amb veu (en centisegons, com els dona el VAD) amb 0,1 s de silenci
