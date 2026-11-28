@@ -27,6 +27,10 @@ cpal = "0.18.2"
 whisper-rs = "0.16.0"
 keyring = { version = "3", features = ["windows-native"] }
 ureq = "3"
+strsim = "0.11"
+natural = "0.3"
+regex = "1"
+image = "0.25"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
