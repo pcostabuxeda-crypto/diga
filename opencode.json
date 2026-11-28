@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["PLA.md"],
+  "agent": {
+    "backend": {
+      "description": "Nucli Rust de Diga: audio.rs, transcriure.rs, sortida.rs, net.rs, lib.rs (Tauri 2, whisper-rs, cpal, enigo)",
+      "model": "nvidia/moonshotai/kimi-k2.6",
+      "prompt": "Treballes al nucli Rust de Diga (Tauri 2, Rust edition 2024, només Windows). Segueix el contracte Rust-UI de PLA.md: si canvies un esdeveniment o una ordre, digues-ho clarament. No toquis main.rs. Res de unwrap() en camins que puguin fallar en temps d'execució: retorna errors i envia l'estat \"error\". Valida sempre amb `cargo check --manifest-path src-tauri/Cargo.toml` i `cargo test --manifest-path src-tauri/Cargo.toml`. La màquina objectiu és un i5 sense GPU: no afegeixis feina a la CPU sense mesurar-la."
+    },
+    "frontend": {
+      "description": "UI de Diga: src/main.ts (configuració), src/retol.ts (rètol), CSS, safata.rs, config.rs, models.rs",
+      "model": "google/gemini-flash-latest",
+      "prompt": "Treballes a la UI de Diga: HTML i TypeScript amb Vite (vanilla-ts), sense frameworks. Textos de la interfície en català. Fes servir només les ordres i esdeveniments del contracte de PLA.md (@tauri-apps/api invoke/listen). La clau d'API mai arriba a la UI. Valida amb `npm run build`. Si toques safata.rs, config.rs o models.rs, també `cargo check --manifest-path src-tauri/Cargo.toml`."
+    },
+    "debugger": {
+      "model": "nvidia/deepseek-ai/deepseek-v4.1-flash",
+      "prompt": "Investiga errors de Diga: errors de compilació de Rust (borrow checker, tipus, features), errors de whisper-rs/whisper.cpp (LLVM/libclang, CMake), del micròfon (cpal) i de Tauri (capabilities, permisos). Reprodueix l'error, troba'n la causa real i aplica la correcció mínima. Explica la causa en una frase."
+    },
+    "tester": {
+      "prompt": "Escriu tests per a Diga. Rust: tests unitaris dins de cada mòdul (#[cfg(test)]) per a la lògica pura (config, post-procés del text, VAD, retalls), sense dependre del micro ni del model. Executa `cargo test --manifest-path src-tauri/Cargo.toml` i `npm run build`, que és el mateix que fa la CI."
+    },
+    "rendiment": {
+      "prompt": "Optimitza Diga per a un i5 de 10a generació sense GPU i amb 16 GB, amb Claude i Docker oberts. Vigila la latència per frase (objectiu ≤ 1 s amb ggml-small-q5_1), la RAM (~315 MB amb el model carregat), els fils de whisper (com a molt 4) i el temps de repòs del model. Mesura abans i després. No toquis els flags /O2 de .cargo/config.toml."
+    },
+    "devops": {
+      "prompt": "Encarrega't de la CI de GitHub Actions (windows-latest: npm ci, npm run build, cargo test), del build de Tauri (`npm run tauri build`), de l'instal·lador NSIS en català sense permisos d'administrador, de les icones i de tauri.conf.json/capabilities. Requisits de compilació: LLVM (libclang) i CMake. Mai posis secrets al repositori."
+    },
+    "ia-integrador": {
+      "prompt": "Treballes al mode net de Diga (net.rs): crida HTTP directa (ureq) a l'API d'Anthropic amb Claude Haiku 5.5 per corregir el text dictat. Només s'envia el text, mai l'àudio. La clau es llegeix del Gestor de credencials de Windows (keyring, cat.diga.app / anthropic-api). Si falla, es copia el text del Whisper amb un `avis`. Mantén la latència al voltant d'1 s."
+    },
+    "php": { "disable": true },
+    "mobil": { "disable": true },
+    "basededades": { "disable": true },
+    "api-builder": { "disable": true },
+    "seo": { "disable": true },
+    "jocs": { "disable": true },
+    "dades": { "disable": true },
+    "automatitzador": { "disable": true }
+  }
+}
